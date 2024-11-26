@@ -1,35 +1,58 @@
-const express = require('express')
-const dotenv = require('dotenv')
-const cors = require('cors')
-const conectarBD = require('./src/configuracion/baseDatos')
+const express = require('express');
+const dotenv = require('dotenv');
+const cors = require('cors');
+const conectarBDMongo = require('./src/configuracion/baseDatos'); // MongoDB
+const pool = require('./src/configuracion/baseDatosPostgres'); // Importamos el pool directamente
+const middlewareAutenticacion = require('./src/middleware/middlewareAutenticacion');
 
-dotenv.config()
+// Configuración del entorno
+dotenv.config();
 
-const app = express()
+const app = express();
 
-app.use(express.json())
-app.use(cors())
+// Middleware para parsear JSON
+app.use(express.json());
 
-conectarBD()
+//Configuración específica de CORS
+app.use(cors({
+    origin: 'http://localhost:3000', 
+    methods: ["GET", "POST", "PUT", "DELETE"], // Permitir solicitudes solo desde el frontend
+    credentials: true,              // Habilitar cookies o encabezados personalizados
+}));
 
-//rutas
-app.use('/api/autenticacion', require('./src/rutas/rutasAutenticacion'))
-app.use('/api/productos', require ('./src/rutas/rutasProducto'))
-app.use('/api/usuarios', require('./src/rutas/rutasUsuario'))
-app.use('/api/ordenes', require('./src/rutas/rutasOrden'))
-app.use('/api/carrito', require('./src/rutas/rutasCarrito'))
-app.use('/api/categorias', require('./src/rutas/rutasCategoria'))
+// Conexión a MongoDB
+conectarBDMongo();
 
-app.use((req, res, next)=>{
-    res.status(404).json({ mensaje: 'Ruta no encontrada'})
-})
+// Verificar conexión a PostgreSQL
+pool.connect()
+    
+    .catch(err => console.error('Error al conectar a PostgreSQL:', err.message));
 
-app.use((error, req, res, next)=>{
-    console.error(error.stack)
-    res.status(500).json({mensaje: 'Error en el servidor ', error: error.message})
-})
+// Rutas
+app.use('/api/productos', require('./src/rutas/rutasProducto'));
+app.use('/api/usuarios', require('./src/rutas/rutasUsuario'));
+app.use('/api/ordenes', require('./src/rutas/rutasOrden'));
+app.use('/api/carrito', require('./src/rutas/rutasCarrito'));
+app.use('/api/categorias', require('./src/rutas/rutasCategoria'));
 
-const PORT = process.env.PORT || 5000
-app.listen(PORT,()=>{
-    console.log(`Servidor ejecutandose en el puerto ${PORT}`)
-})
+// Ruta protegida (perfil del usuario)
+app.get('/api/usuarios/perfil', middlewareAutenticacion, (req, res) => {
+    res.status(200).json({ mensaje: 'Perfil de usuario', usuario: req.user });
+});
+
+// Middleware para rutas no encontradas
+app.use((req, res, next) => {
+    res.status(404).json({ mensaje: 'Ruta no encontrada' });
+});
+
+// Middleware para manejo de errores
+app.use((error, req, res, next) => {
+    console.error(error.stack);
+    res.status(500).json({ mensaje: 'Error en el servidor', error: error.message });
+});
+
+// Iniciar el servidor
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`Servidor ejecutándose en el puerto ${PORT}`);
+});
