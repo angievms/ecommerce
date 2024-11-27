@@ -23,11 +23,14 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-gray-800 text-white py-4">
-      <nav className="container mx-auto flex justify-between items-center">
-        <h1 className="text-lg font-bold">Mi Proyecto</h1>
+    <header className="bg-gray-800 text-white">
+      {/* Usamos 'px-8 py-4' para mayor separación */}
+      <nav className="container mx-auto px-8 py-4 flex justify-between items-center">
+      <Link to="/" className="text-lg font-bold">
+          <h1>My Ecommerce</h1>
+        </Link>
         <div className="flex space-x-4 items-center">
-          {location.pathname === "/productos" && usuario ? ( // Mostrar solo en /productos
+          {location.pathname === "/productos" && usuario ? (
             <>
               <div className="flex items-center space-x-2">
                 <FontAwesomeIcon icon={faUser} className="text-gray-300" />
